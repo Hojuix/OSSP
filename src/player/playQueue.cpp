@@ -76,11 +76,11 @@ int OSSPQ_getTotalPos() {
     return OSSPQ_SongQueue.size();
 }
 
-int OSSPQ_advancePos() {
+void OSSPQ_advancePos() {
     OSSPQ_currentPos += 1;
 }
 
-int OSSPQ_backtrackPos() {
+void OSSPQ_backtrackPos() {
     OSSPQ_currentPos -= 1;
 }
 

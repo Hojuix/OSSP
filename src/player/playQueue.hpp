@@ -30,8 +30,8 @@ typedef struct {
 int OSSPQ_AppendToEnd(char* title, char* album, char* artist, char* id, char* streamUrl, char* coverArtUrl, long duration, int mode);
 int OSSPQ_getCurrentPos();
 int OSSPQ_getTotalPos();
-int OSSPQ_advancePos();
-int OSSPQ_backtrackPos();
+void OSSPQ_advancePos();
+void OSSPQ_backtrackPos();
 OSSPQ_SongStruct* OSSPQ_getAtPos(int pos);
 void OSSPQ_FreeSongObjectC(OSSPQ_SongStruct* songObjectC);
 
