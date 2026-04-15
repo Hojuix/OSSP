@@ -1,5 +1,10 @@
 # OSSP (OpenSubsonicPlayer)
 
+## Why move from GitHub?
+OSSP has moved here (a self hosted Gitea instance) due to me maybe kind of losing access to my GitHub account >_<<br>
+I have lost all access, so that account (github.com/goldenkrew3000) is now a time capsule.<br>
+Not that I care though, no one uses this, and I would rather not use Microsoft slop.
+
 ## AI Notice
 This project does not have ANY AI code other than a few snippets that will be removed in the future.<br>
 Yes I comment a LOT, and unfortunately this has become a red flag for excessive AI use.<br>
