@@ -20,6 +20,9 @@
 #include "playQueue.hpp"
 #include "player.h"
 
+// TESTING
+#include "scrobbler_lastFm.h"
+
 extern configHandler_config_t* configObj;
 static int rc = 0;
 GstElement *pipeline, *playbin, *filter_bin, *conv_in, *conv_out, *in_volume, *equalizer, *pitch, *reverb, *out_volume;
@@ -109,6 +112,7 @@ void* OSSPlayer_GMainLoop(void* arg) {
 void* OSSPlayer_ThrdInit(void* arg) {
     (void)arg;
     bool haveIssuedDiscordRPCIdle = true;
+    bool haveScrobbledSong = false;
 
     // Player init function for pthread entry
     logger_log_important(__func__, "Player thread running.");
@@ -120,7 +124,9 @@ void* OSSPlayer_ThrdInit(void* arg) {
 
     // Poll play queue for new items to play
     while (true) { // TODO use global bool instead
-        if (OSSPQ_getTotalPos() != 0 && isPlaying == false) {
+        if (OSSPQ_getTotalPos() != 0 &&
+            OSSPQ_getCurrentPos() != OSSPQ_getTotalPos() &&
+            isPlaying == false) {
             // Player is not playing and a song is in the song queue
 
             // Pull new song from the song queue
@@ -130,6 +136,9 @@ void* OSSPlayer_ThrdInit(void* arg) {
                 printf("[OSSPlayer]\n");
                 // TODO: this
             }
+
+            // Reset scrobble
+            haveScrobbledSong = false;
 
             if (songObject->mode == OSSPQ_MODE_INTERNETRADIO) {
                 // Setup Discord RPC
@@ -147,6 +156,15 @@ void* OSSPlayer_ThrdInit(void* arg) {
                 isPlaying = true;
                 gst_element_set_state(pipeline, GST_STATE_PLAYING);
             } else if (songObject->mode == OSSPQ_MODE_OPENSUBSONIC) {
+                // Issue initial LastFM scrobble
+                scrobbler_data* scrobblerData = malloc(sizeof(scrobbler_data));
+                opensubsonic_scrobble_init(scrobblerData);
+                scrobblerData->songTitle = strdup(songObject->title);
+                scrobblerData->songAlbum = strdup(songObject->album);
+                scrobblerData->songArtist = strdup(songObject->artist);
+                opensubsonic_scrobble_lastFm(scrobblerData);
+                opensubsonic_scrobble_free(scrobblerData);
+
                 // Prepare Discord RPC
                 discordrpc_data* discordrpc = NULL;
                 discordrpc_struct_init(&discordrpc);
@@ -209,6 +227,44 @@ void* OSSPlayer_ThrdInit(void* arg) {
                 discordrpc_struct_deinit(&discordrpc);
             }
         }
+
+        // Scrobbler
+        // Nothing playing: 0.00
+        // Oh and end of song (EOS) -> 0.00
+        
+        // If song is >3/4 finished, perform final scrobble
+        // Else, perform an in-progress scrobble every 45s (This can be handled later)
+        // Have to fetch the total playback from Gstreamer, otherwise im malloc'ing every 200ms, a little fucking dramatic
+
+        // NOTE: Cannot query Playbin3 for the length, as the OpenSubsonic /stream endpoint seems to be technically livestreaming it
+
+        // Bad idea: Could technically do it the same way the DiscordRPC one does it
+        // Gather the data at the same time, send a couple arguments and encapsulate it in it's own thread...
+        // Kinda wasteful of a process though
+
+        if (isPlaying == true) {
+            float songLength = (float)OSSPQ_getSongLength(OSSPQ_getCurrentPos());
+            printf("Song length: %f\n", songLength);
+            printf("Current: %f\n", OSSPlayer_GstECont_Playbin3_Position_Get());
+
+            // Check if song is >=3/4 finished
+            if (OSSPlayer_GstECont_Playbin3_Position_Get() >= (songLength / 4 * 3) && haveScrobbledSong == false) {
+                // Finalize song scrobble
+                OSSPQ_SongStruct* songObject = OSSPQ_getAtPos(OSSPQ_getCurrentPos());
+
+                scrobbler_data* scrobblerData = malloc(sizeof(scrobbler_data));
+                opensubsonic_scrobble_init(scrobblerData);
+                scrobblerData->finalize = 1;
+                scrobblerData->songTitle = strdup(songObject->title);
+                scrobblerData->songAlbum = strdup(songObject->album);
+                scrobblerData->songArtist = strdup(songObject->artist);
+                opensubsonic_scrobble_lastFm(scrobblerData);
+                opensubsonic_scrobble_free(scrobblerData);
+
+                haveScrobbledSong = true;
+            }
+        }
+
 
         usleep(200 * 1000);
     }
@@ -562,4 +618,11 @@ void OSSPlayer_DiscordRPC_SendPlaying(time_t startTime) {
     }
 
     OSSPQ_FreeSongObjectC(songObject);
+}
+
+/*
+ * Functions that utilize scrobblers
+ */
+void OSSPlayer_Scrobbler_LastFM(int final) {
+    //
 }

@@ -63,11 +63,13 @@ void discordrpc_update(discordrpc_data** discordrpc_struct) {
     memset(&presence, 0, sizeof(presence));
 
     if ((*discordrpc_struct)->state == DISCORDRPC_STATE_IDLE) {
+        printf("[DiscordRPC] Issuing Idle RPC.\n");
         asprintf(&detailsString, "Idle");
         presence.details = detailsString;
     } else if ((*discordrpc_struct)->state == DISCORDRPC_STATE_PLAYING_OPENSUBSONIC ||
            ((*discordrpc_struct)->state == DISCORDRPC_STATE_PLAYING_LOCALFILE)) {
         // Playing a song from an OpenSubsonic server
+        printf("[DiscordRPC] Issuing OpenSubsonic/Local File Song RPC.\n");
         asprintf(&detailsString, "%s", (*discordrpc_struct)->songTitle);
         asprintf(&stateString, "by %s", (*discordrpc_struct)->songArtist);
         presence.details = detailsString;
@@ -83,6 +85,7 @@ void discordrpc_update(discordrpc_data** discordrpc_struct) {
         }
     } else if ((*discordrpc_struct)->state == DISCORDRPC_STATE_PLAYING_INTERNETRADIO) {
         // Playing an internet radio station
+        printf("[DiscordRPC] Issuing Internet Radio RPC.\n");
         asprintf(&detailsString, "%s", (*discordrpc_struct)->songTitle);
         asprintf(&stateString, "Internet radio station");
         presence.details = detailsString;
@@ -94,6 +97,7 @@ void discordrpc_update(discordrpc_data** discordrpc_struct) {
         }
     } else if ((*discordrpc_struct)->state == DISCORDRPC_STATE_PAUSED) {
         // Player is paused
+        printf("[DiscordRPC] Issuing Paused RPC.\n");
         asprintf(&detailsString, "Paused");
         presence.details = detailsString;
     }

@@ -23,11 +23,11 @@ add_executable(ossp MACOSX_BUNDLE
     socket/socketActions.c
     player/player.c
     player/playQueue.cpp
+    player/scrobbler_lastFm.c
     libopensubsonic/crypto.c
     libopensubsonic/httpclient.c
     libopensubsonic/logger.c
     libopensubsonic/utils.c
-    libopensubsonic/scrobble_lastFm.c
     libopensubsonic/scrobble_listenBrainz.c
     libopensubsonic/endpoint_getAlbum.c
     libopensubsonic/endpoint_getAlbumList.c

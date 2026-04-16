@@ -130,3 +130,9 @@ void OSSPQ_FreeSongObjectC(OSSPQ_SongStruct* songObjectC) {
     if (songObjectC->coverArtUrl != NULL) { free(songObjectC->coverArtUrl); }
     if (songObjectC != NULL) { free(songObjectC); }
 }
+
+// Used for scrobbling, called every 200ms
+long OSSPQ_getSongLength(int idx) {
+    OSSPQ_SongObject songObject = OSSPQ_SongQueue[idx];
+    return songObject.duration;
+}

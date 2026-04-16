@@ -34,6 +34,7 @@ void OSSPQ_advancePos();
 void OSSPQ_backtrackPos();
 OSSPQ_SongStruct* OSSPQ_getAtPos(int pos);
 void OSSPQ_FreeSongObjectC(OSSPQ_SongStruct* songObjectC);
+long OSSPQ_getSongLength(int idx);
 
 #ifdef __cplusplus
 }
