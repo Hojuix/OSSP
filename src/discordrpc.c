@@ -1,8 +1,8 @@
 /*
- * OpenSubSonicPlayer
- * Goldenkrew3000 2025
+ * OpenSubsonicPlayer
+ * Goldenkrew3000 / Hojuix 2026
  * License: GNU General Public License 3.0
- * Discord Local RPC Handler
+ * Info: Discord RPC Handler
  */
 
 #include <inttypes.h>
