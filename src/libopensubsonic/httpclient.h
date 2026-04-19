@@ -39,9 +39,20 @@ typedef struct {
     int type;           // Type of request (As used in the /getAlbumList endpoint)
     int amount;         // Amount of items to return (Also as used in the /getAlbumList endpoint)
     bool submit;        // Submit scrobble (used for the /scrobble endpoint)
-    char* formedUrl;    // Final URL
-} opensubsonic_httpClient_URL_t; // Forms authenticated URLs with required parameters
+    char* url;          // Final URL
 
+    // Internal
+    char* reqBody;
+    int httpMethod;
+    bool isBodyReq;
+    int resCode;
+    char* resBody;
+
+    // Returned struct
+    void* returnStruct;
+} OSSP_httpCli_UrlObj_t; // Forms authenticated URLs with required parameters
+
+/*
 typedef struct {
     // Request Information
     char* requestUrl;
@@ -53,21 +64,23 @@ typedef struct {
     // Response Information
     int responseCode;
     char* responseMsg;
-} opensubsonic_httpClientRequest_t; // OS-agnostic HTTP interface
+} OSSP_httpCli_ResObj_t; // OS-agnostic HTTP interface
+ */
 
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-void UNIX_HttpRequest(opensubsonic_httpClientRequest_t** httpReq);
-#endif
+OSSP_httpCli_UrlObj_t* OSSP_httpCli_UrlObj_Constructor();
+void OSSP_httpCli_UrlObj_Deconstructor(OSSP_httpCli_UrlObj_t* obj);
+int OSSP_httpCli_createURL(OSSP_httpCli_UrlObj_t* obj);
 
-void opensubsonic_httpClient_URL_prepare(opensubsonic_httpClient_URL_t** urlObj);
-void opensubsonic_httpClient_URL_cleanup(opensubsonic_httpClient_URL_t** urlObj);
-void opensubsonic_httpClient_formUrl(opensubsonic_httpClient_URL_t** urlObj);
-void opensubsonic_httpClient_fetchResponse(opensubsonic_httpClient_URL_t** urlObj, void** responseObj);
-void opensubsonic_httpClient_prepareRequest(opensubsonic_httpClientRequest_t** httpReq);
-void opensubsonic_httpClient_cleanup(opensubsonic_httpClientRequest_t** httpReq);
-int opensubsonic_httpClient_request(opensubsonic_httpClientRequest_t** httpReq);
+int OSSP_httpCli_sendReq(OSSP_httpCli_UrlObj_t* obj);
+void OSSP_httpCli_UNIXHttpReq(OSSP_httpCli_UrlObj_t* obj);
 
-void UNIX_HttpRequest(opensubsonic_httpClientRequest_t** httpReq);
+//void opensubsonic_httpClient_formUrl(opensubsonic_httpClient_URL_t** urlObj);
+//void opensubsonic_httpClient_fetchResponse(opensubsonic_httpClient_URL_t** urlObj, void** responseObj);
+//void opensubsonic_httpClient_prepareRequest(opensubsonic_httpClientRequest_t** httpReq);
+//void opensubsonic_httpClient_cleanup(opensubsonic_httpClientRequest_t** httpReq);
+//int opensubsonic_httpClient_request(opensubsonic_httpClientRequest_t** httpReq);
+
+//void UNIX_HttpRequest(opensubsonic_httpClientRequest_t** httpReq);
 
 // DEPRECATED - TO BE REMOVED SOON - APART OF THE OLD INFRASTRUCTURE
 typedef struct {
@@ -75,7 +88,7 @@ typedef struct {
     size_t size;
 } binary_response_struct;
 
-int opensubsonic_getAlbum(const char* protocol_ptr, const char* server_ptr, const char* user_ptr, char* login_token_ptr, char* login_salt_ptr, const char* opensubsonic_version_ptr, const char* client_name_ptr, char* id, char** response);
+//int opensubsonic_getAlbum(const char* protocol_ptr, const char* server_ptr, const char* user_ptr, char* login_token_ptr, char* login_salt_ptr, const char* opensubsonic_version_ptr, const char* client_name_ptr, char* id, char** response);
 
 #ifdef __cplusplus
 }
