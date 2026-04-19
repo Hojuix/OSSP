@@ -21,13 +21,12 @@ typedef struct {
     char* songTitle;
     char* songArtist;
     char* coverArtUrl;
-} discordrpc_data;
+} OSSP_discordrpc_t;
 
-
-void discordrpc_struct_init(discordrpc_data** discordrpc_struct);
-void discordrpc_struct_deinit(discordrpc_data** discordrpc_struct);
-int discordrpc_init();
-void discordrpc_update(discordrpc_data** discordrpc_struct);
-char* discordrpc_getOS();
+OSSP_discordrpc_t* OSSP_discordrpc_Constructor();
+void OSSP_discordrpc_Deconstructor(OSSP_discordrpc_t* obj);
+int OSSP_discordrpc_Init();
+void OSSP_discordrpc_update(OSSP_discordrpc_t* obj);
+char* OSSP_discordrpc_getOS();
 
 #endif
