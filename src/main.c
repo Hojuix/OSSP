@@ -13,14 +13,14 @@
 #include "libopensubsonic/httpclient.h"
 #include "libopensubsonic/endpoint_ping.h"
 #include "configHandler.h"
-#include "player/player.h"
+//#include "player/player.h"
 #include "discordrpc.h"
 
-#include "localRadioDBHandler.h"
-#include "libopensubsonic/endpoint_getInternetRadioStations.h"
+//#include "localRadioDBHandler.h"
+//#include "libopensubsonic/endpoint_getInternetRadioStations.h"
 #include "libopensubsonic/httpclient.h"
-#include "socket/socket.h"
-#include "localMusicHandler.hpp"
+//#include "socket/socket.h"
+//#include "localMusicHandler.hpp"
 
 static int rc = 0;
 configHandler_config_t* configObj = NULL;
@@ -28,8 +28,6 @@ int checkConfigFile();
 int validateConnection();
 
 int main(int argc, char** argv) {
-    //localRadioDBHandler_Init();
-
     // Read config file
     rc = configHandler_Read(&configObj);
     if (rc != 0) {
@@ -60,27 +58,34 @@ int main(int argc, char** argv) {
     }
 
     // Connection attempt was successful, initialize player
+    /*
     pthread_t pthr_player;
     pthread_create(&pthr_player, NULL, OSSPlayer_ThrdInit, NULL);
+*/
 
     // Launch Discord RPC
-    discordrpc_data* discordrpc = NULL;
-    discordrpc_struct_init(&discordrpc);
-    discordrpc->state = DISCORDRPC_STATE_IDLE;
-    rc = discordrpc_init();
-    if (rc != 0) {
+    OSSP_discordrpc_t* discordrpc = OSSP_discordrpc_Constructor();
+    if (discordrpc == NULL) {
+        printf("malloc() failed.\n");
         return 1;
     }
-    discordrpc_update(&discordrpc);
-    discordrpc_struct_deinit(&discordrpc);
+    discordrpc->state = DISCORDRPC_STATE_IDLE;
+    rc = OSSP_discordrpc_Init();
+    if (rc != 0) {
+        printf("[OSSP] Discord RPC failed to initialize.\n");
+        return 1;
+    }
+    OSSP_discordrpc_update(discordrpc);
+    OSSP_discordrpc_Deconstructor(discordrpc);
 
     //localMusicHandler_scan();
-
+/*
     // Launch socket server
     socketHandler_init();
-
+*/
     // Cleanup and exit
     configHandler_Free(&configObj);
+    
     return 0;
 }
 
@@ -129,30 +134,40 @@ int checkConfigFile() {
 }
 
 int validateConnection() {
+    static int rc = 0;
     printf("Attempting to connect to /ping at %s://%s...\n", configObj->opensubsonic_protocol, configObj->opensubsonic_server);
-    opensubsonic_httpClient_URL_t* pingUrl = malloc(sizeof(opensubsonic_httpClient_URL_t));
-    opensubsonic_httpClient_URL_prepare(&pingUrl);
-    pingUrl->endpoint = OPENSUBSONIC_ENDPOINT_PING;
-    opensubsonic_httpClient_formUrl(&pingUrl);
-    opensubsonic_ping_struct* OSS_ping_struct;
-    opensubsonic_httpClient_fetchResponse(&pingUrl, (void**)&OSS_ping_struct);
-
-    if (!OSS_ping_struct->error) {
-        printf("Connection to %s://%s successful.\n", configObj->opensubsonic_protocol, configObj->opensubsonic_server);
-        printf("Server: %s %s.\n", OSS_ping_struct->serverType, OSS_ping_struct->serverVersion);
-    } else {
-        printf("Connection to %s://%s failed:\n", configObj->opensubsonic_protocol, configObj->opensubsonic_server);
-        printf("Code %d - %s\n", OSS_ping_struct->errorCode, OSS_ping_struct->errorMessage);
+    
+    OSSP_httpCli_UrlObj_t* pingUrlObj = OSSP_httpCli_UrlObj_Constructor();
+    if (pingUrlObj == NULL) {
+        printf("malloc() failed.\n");
+        return 1;
     }
+    pingUrlObj->endpoint = OPENSUBSONIC_ENDPOINT_PING;
+    rc = OSSP_httpCli_createURL(pingUrlObj);
+    if (rc != 0) {
+        return 1;
+    }
+    
+    rc = OSSP_httpCli_sendReq(pingUrlObj);
+    OSSP_endpoint_ping_t* pingStr = (OSSP_endpoint_ping_t*)pingUrlObj->returnStruct;
+    if (rc == 1) {
+        if (pingUrlObj->returnStruct != NULL) {
+            OSSP_endpoint_ping_Deconstructor(pingStr);
+        }
+        OSSP_httpCli_UrlObj_Deconstructor(pingUrlObj);
+        return 1;
+    }
+    OSSP_httpCli_UrlObj_Deconstructor(pingUrlObj);
 
-    // NOTE: A little verbose to avoid making another variable to hold error code after freeing structs
-    if (!OSS_ping_struct->error) {
-        opensubsonic_ping_struct_free(&OSS_ping_struct);
-        opensubsonic_httpClient_URL_cleanup(&pingUrl);
+    if (!pingStr->error) {
+        printf("Connection to %s://%s successful.\n", configObj->opensubsonic_protocol, configObj->opensubsonic_server);
+        printf("Server: %s %s.\n", pingStr->serverType, pingStr->serverVersion);
+        OSSP_endpoint_ping_Deconstructor(pingStr);
         return 0;
     } else {
-        opensubsonic_ping_struct_free(&OSS_ping_struct);
-        opensubsonic_httpClient_URL_cleanup(&pingUrl);
+        printf("Connection to %s://%s failed:\n", configObj->opensubsonic_protocol, configObj->opensubsonic_server);
+        printf("Code %d - %s\n", pingStr->errorCode, pingStr->errorMessage);
+        OSSP_endpoint_ping_Deconstructor(pingStr);
         return 1;
     }
 }

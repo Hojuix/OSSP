@@ -1,6 +1,6 @@
 /*
  * OpenSubsonicPlayer
- * Goldenkrew3000 2025
+ * Goldenkrew3000 / Hojuix 2026
  * License: GNU General Public License 3.0
  * Info: Configuration Handler
  */
@@ -13,13 +13,26 @@
 #include <sys/stat.h>
 #include "configHandler.h"
 #include "external/cJSON.h"
+
 #include "libopensubsonic/logger.h"
+#include "libopensubsonic/utils.h"
 
 #if defined(__APPLE__) && defined(__MACH__) && defined(XCODE)
 #include "OSSP_Bridge.h"
 #endif // defined(__APPLE__) && defined(__MACH__) && defined(__XCODE__)
 
 static int rc = 0;
+
+OSSP_config_t* OSSP_configHandler_Constructor() {
+    OSSP_config_t* obj = malloc(sizeof(OSSP_config_t));
+    if (obj == NULL) {
+        return NULL;
+    }
+}
+
+void OSSP_configHandler_Deconstructor(OSSP_config_t* obj) {
+    //
+}
 
 /*
  * Read a predefined config file into the configuration struct

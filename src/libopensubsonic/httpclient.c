@@ -25,7 +25,8 @@ extern configHandler_config_t* configObj;
 /*
  * URL Constructor/Deconstructor
  */
-OSSP_httpCli_UrlObj_t* OSSP_httpCli_UrlObj_Constructor() {    
+OSSP_httpCli_UrlObj_t* OSSP_httpCli_UrlObj_Constructor() {   
+    printf("[LibOpenSubsonic] Running httpCli Constructor.\n"); 
     OSSP_httpCli_UrlObj_t* obj = malloc(sizeof(OSSP_httpCli_UrlObj_t));
     if (obj == NULL) {
         return NULL;
@@ -46,8 +47,7 @@ OSSP_httpCli_UrlObj_t* OSSP_httpCli_UrlObj_Constructor() {
 }
 
 void OSSP_httpCli_UrlObj_Deconstructor(OSSP_httpCli_UrlObj_t* obj) {
-    //logger_log_general(__func__, "Freeing URL object with endpoint ID of %d.", obj->endpoint);
-    printf("hjaha %s\n", obj->url);
+    printf("[LibOpenSubsonic] Running httpCli Deconstructor containing an endpoint ID of %d.\n", obj->endpoint);
     if (obj->url != NULL) { free(obj->url); }
     if (obj->id != NULL) { free(obj->id); }
     if (obj->reqBody != NULL) { free(obj->reqBody); }
@@ -79,7 +79,7 @@ int OSSP_httpCli_createURL(OSSP_httpCli_UrlObj_t* obj) {
 int OSSP_httpCli_sendReq(OSSP_httpCli_UrlObj_t* obj) {
     static int rc = 0;
     OSSP_httpCli_UNIXHttpReq(obj);
-    
+
     if (obj->resBody == NULL) {
         printf("[LibOpenSubsonic] HTTP Request returned no data.\n");
         return 1;

@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/user/Desktop/OSSP_Rewrite/OSSP/src/build/cmake_install.cmake",
+		"/Users/user/Desktop/OSSP_Rewrite/OSSP/src/build/external/discord-rpc/cmake_install.cmake",
+		"/Users/user/Desktop/OSSP_Rewrite/OSSP/src/build/external/discord-rpc/src/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

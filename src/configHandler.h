@@ -1,7 +1,8 @@
 /*
  * OpenSubsonicPlayer
- * Goldenkrew3000 2025
+ * Goldenkrew3000 / Hojuix 2026
  * License: GNU General Public License 3.0
+ * Info: Configuration Handler
  */
 
 #ifndef _CONFIG_HANDLER_H
@@ -72,7 +73,7 @@ typedef struct {
 
     // Client Settings
     char* client_socket_path;           // Socket Path for client
-} configHandler_config_t;
+} OSSP_config_t;
 
 int configHandler_Read(configHandler_config_t** config);
 void configHandler_Free(configHandler_config_t** config);
