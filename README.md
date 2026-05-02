@@ -29,7 +29,7 @@ This means that if you wanted to develop a TUI interface for OSSP, and have the 
 that is completely possible.
 
 ## Building
-Please look at the ```building``` folder for more information. Due to certain configuration choices made by package maintainers, building OSSP is not exactly easy, although most of the process for supported platforms is automated, and the dependency tree is kept completely separate from system packages to avoid conflicts.<br>
+Please look at the `building` folder for more information. Due to certain configuration choices made by package maintainers, building OSSP is not exactly easy, although most of the process for supported platforms is automated, and the dependency tree is kept completely separate from system packages to avoid conflicts.<br>
 
 OSSP has support for the following operating systems:
 - Linux (GLibc / musl, x86_64 / aarch64)
@@ -44,5 +44,5 @@ OSSP has support for the following operating systems:
 OSSP itself is extremely portable, and should be portable to any UNIX®/Unix-like platform with only a little work.
 
 ## Information
-The ```libopensubsonic``` library has been implemented as per the specification located at [OpenSubsonic Netlify](https://opensubsonic.netlify.app/docs/api-reference/)
+The `libopensubsonic` library has been implemented as per the specification located at [OpenSubsonic Netlify](https://opensubsonic.netlify.app/docs/api-reference/)
 
