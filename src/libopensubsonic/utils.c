@@ -40,6 +40,15 @@ void OSS_Ploj(long* dest, cJSON* obj, char* child) {
     }
 }
 
+void OSS_Pdoj(double* dest, cJSON* obj, char* child) {
+    if (obj != NULL) {
+        cJSON* childObj = cJSON_GetObjectItem(obj, child);
+        if (cJSON_IsNumber(childObj)) {
+            *dest = childObj->valuedouble;
+        }
+    }
+}
+
 void OSS_Pboj(bool* dest, cJSON* obj, char* child) {
     if (obj != NULL) {
         cJSON* childObj = cJSON_GetObjectItem(obj, child);
