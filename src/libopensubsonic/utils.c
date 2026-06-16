@@ -60,3 +60,9 @@ void OSS_Pboj(bool* dest, cJSON* obj, char* child) {
     }
 }
 
+void OSS_SafeFree(void* ptr) {
+    if (ptr != NULL) {
+        free(ptr);
+        ptr = NULL;
+    }
+}

@@ -8,5 +8,6 @@ void OSS_Pioj(int* dest, cJSON* obj, char* child);
 void OSS_Ploj(long* dest, cJSON* obj, char* child);
 void OSS_Pdoj(double* dest, cJSON* obj, char* child);
 void OSS_Pboj(bool* dest, cJSON* obj, char* child);
+void OSS_SafeFree(void* ptr);
 
 #endif
