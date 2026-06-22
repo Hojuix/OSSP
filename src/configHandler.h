@@ -10,11 +10,19 @@
 #include <stdbool.h>
 
 typedef struct {
+    int position;                       // Position within the parametric EQ
     double bandwidth;
     int frequency;                      // Frequency in Hz
     double gain;                        // Gain in db
     bool bypass;                        // Ignore entry
 } OSSP_config_eqGraph_t;
+
+typedef struct {
+    char* name;
+    bool follow_pitch;  // Have equalizer align to pitch adjustment
+    int graph_count;
+    OSSP_config_eqGraph_t* audio_equalizer_graph;
+} OSSP_config_eqPreset_t;
 
 typedef struct {
     // Opensubsonic Settings
@@ -51,9 +59,8 @@ typedef struct {
 
     // Audio Settings
     bool audio_equalizer_enable;
-    bool audio_equalizer_follow_pitch;  // Have equalizer align to pitch adjustment
-    int audio_equalizer_graph_count;
-    OSSP_config_eqGraph_t* audio_equalizer_graph;
+    int audio_equalizer_preset_count;
+    OSSP_config_eqPreset_t* audio_equalizer_presets;
     bool audio_pitch_enable;
     double audio_pitch_cents;
     double audio_pitch_rate;

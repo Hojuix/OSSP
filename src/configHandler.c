@@ -54,9 +54,9 @@ OSSP_config_t* OSSP_configHandler_Constructor() {
     obj->discordrpc_show_cover_art = false;
 
     obj->audio_equalizer_enable = false;
-    obj->audio_equalizer_follow_pitch = false;
-    obj->audio_equalizer_graph_count = 0;
-    obj->audio_equalizer_graph = NULL;
+    obj->audio_equalizer_preset_count = 0;
+    obj->audio_equalizer_presets = NULL;
+
     obj->audio_pitch_enable = false;
     obj->audio_pitch_cents = 0.00;
     obj->audio_pitch_rate = 0.00;
@@ -99,7 +99,11 @@ void OSSP_configHandler_Deconstructor(OSSP_config_t* obj) {
     OSS_SafeFree(obj->lastfm_api_secret);
     OSS_SafeFree(obj->lastfm_api_session_key);
 
-    OSS_SafeFree(obj->audio_equalizer_graph); // No heap allocated objects in this struct
+    for (int i = 0; i < obj->audio_equalizer_preset_count; i++) {
+        OSS_SafeFree(obj->audio_equalizer_presets[i].name);
+        OSS_SafeFree(obj->audio_equalizer_presets[i].audio_equalizer_graph);
+    }
+    OSS_SafeFree(obj->audio_equalizer_presets);
     
     OSS_SafeFree(obj->lv2_custom_path);
     OSS_SafeFree(obj->lv2_parax32_filter_name);
@@ -234,31 +238,47 @@ int OSSP_configHandler_readConfig(OSSP_config_t* obj) {
         printf("[ConfigHandler] 'discord_rpc' section missing from configuraton file.\n");
     }
 
+    // I am genuinely incredibly sorry for what you are about to read...
     cJSON* audio_root = cJSON_GetObjectItemCaseSensitive(root, "audio");
     if (audio_root != NULL) {
         cJSON* equalizer_root = cJSON_GetObjectItemCaseSensitive(audio_root, "equalizer");
         if (equalizer_root != NULL) {
             OSS_Pboj(&obj->audio_equalizer_enable, equalizer_root, "enable");
-            OSS_Pboj(&obj->audio_equalizer_follow_pitch, equalizer_root, "follow_pitch");
+            cJSON* equalizer_presets_array = cJSON_GetObjectItemCaseSensitive(equalizer_root, "presets");
+            if (equalizer_presets_array != NULL) {
+                obj->audio_equalizer_preset_count = cJSON_GetArraySize(equalizer_presets_array);
+                obj->audio_equalizer_presets = malloc(obj->audio_equalizer_preset_count * sizeof(OSSP_config_eqPreset_t));
+                if (obj->audio_equalizer_presets != NULL) {
+                    for (int i = 0; i < obj->audio_equalizer_preset_count; i++) {
+                        cJSON* equalizer_preset = cJSON_GetArrayItem(equalizer_presets_array, i);
+                        if (equalizer_preset != NULL) {
+                            obj->audio_equalizer_presets[i].name = NULL;
+                            obj->audio_equalizer_presets[i].follow_pitch = false;
+                            OSS_Psoj(&obj->audio_equalizer_presets[i].name, equalizer_preset, "name");
+                            OSS_Pboj(&obj->audio_equalizer_presets[i].follow_pitch, equalizer_preset, "follow_pitch");
+                            cJSON* equalizer_preset_graph = cJSON_GetObjectItemCaseSensitive(equalizer_preset, "graph");
+                            if (equalizer_preset_graph != NULL) {
+                                obj->audio_equalizer_presets[i].graph_count = cJSON_GetArraySize(equalizer_preset_graph);
+                                obj->audio_equalizer_presets[i].audio_equalizer_graph = malloc(obj->audio_equalizer_presets[i].graph_count * sizeof(OSSP_config_eqGraph_t));
+                                if (obj->audio_equalizer_presets[i].audio_equalizer_graph != NULL) {
+                                    for (int j = 0; j < obj->audio_equalizer_presets[i].graph_count; j++) {
+                                        obj->audio_equalizer_presets[i].audio_equalizer_graph[j].position = 0;
+                                        obj->audio_equalizer_presets[i].audio_equalizer_graph[j].bandwidth = 0.00;
+                                        obj->audio_equalizer_presets[i].audio_equalizer_graph[j].frequency = 0;
+                                        obj->audio_equalizer_presets[i].audio_equalizer_graph[j].gain = 0.00;
+                                        obj->audio_equalizer_presets[i].audio_equalizer_graph[j].bypass = false;
 
-            // TODO allow multiple EQ profiles
-            cJSON* graph_array = cJSON_GetObjectItemCaseSensitive(equalizer_root, "graph");
-            if (graph_array != NULL) {
-                obj->audio_equalizer_graph_count = cJSON_GetArraySize(graph_array);
-                obj->audio_equalizer_graph = malloc(obj->audio_equalizer_graph_count * sizeof(OSSP_config_eqGraph_t));
-                if (obj->audio_equalizer_graph != NULL) {
-                    for (int i = 0; i < obj->audio_equalizer_graph_count; i++) {
-                        obj->audio_equalizer_graph[i].bandwidth = 0.00;
-                        obj->audio_equalizer_graph[i].frequency = 0;
-                        obj->audio_equalizer_graph[i].gain = 0.00;
-                        obj->audio_equalizer_graph[i].bypass = false;
-
-                        cJSON* graph_array_item = cJSON_GetArrayItem(graph_array, i);
-                        if (graph_array_item != NULL) {
-                            OSS_Pdoj(&obj->audio_equalizer_graph[i].bandwidth, graph_array_item, "bandwidth");
-                            OSS_Pioj(&obj->audio_equalizer_graph[i].frequency, graph_array_item, "frequency");
-                            OSS_Pdoj(&obj->audio_equalizer_graph[i].gain, graph_array_item, "gain");
-                            OSS_Pboj(&obj->audio_equalizer_graph[i].bypass, graph_array_item, "bypass");
+                                        cJSON* equalizer_preset_graph_item = cJSON_GetArrayItem(equalizer_preset_graph, j);
+                                        if (equalizer_preset_graph_item != NULL) {
+                                            OSS_Pioj(&obj->audio_equalizer_presets[i].audio_equalizer_graph[j].position, equalizer_preset_graph_item, "frequency");
+                                            OSS_Pdoj(&obj->audio_equalizer_presets[i].audio_equalizer_graph[j].bandwidth, equalizer_preset_graph_item, "bandwidth");
+                                            OSS_Pioj(&obj->audio_equalizer_presets[i].audio_equalizer_graph[j].frequency, equalizer_preset_graph_item, "frequency");
+                                            OSS_Pdoj(&obj->audio_equalizer_presets[i].audio_equalizer_graph[j].gain, equalizer_preset_graph_item, "gain");
+                                            OSS_Pboj(&obj->audio_equalizer_presets[i].audio_equalizer_graph[j].bypass, equalizer_preset_graph_item, "bypass");
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
