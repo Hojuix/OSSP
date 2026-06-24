@@ -5,6 +5,19 @@
  * Info: Local Music Handler
  */
 
+/*
+ * Note: I am very sorry for the messy / unorganized code, but this is the first time I have ever
+ * done anything like this. I am going with safety over efficiency, which makes this code (relatively)
+ * slow. But it works (seemingly very well)!
+ */
+
+/*
+ * Note: Yes, I could just read in the entire database into memory when the application starts, but
+ * with a not-so-big music library, this could easily take up a lot of memory. OSSP itself can easily
+ * run under 100mb of total memory, so it makes sense to dynamically pull from the database file instead.
+ * This also gives us some nice sqlite functions to very easily search by UIDs
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +38,7 @@ extern "C" {
 #include <regex>
 #include <vector>
 #include <deque>
+#include <algorithm>
 #include "configHandler.h"
 #include "localMusicHandler.hpp"
 
@@ -56,12 +70,29 @@ class OSSP_localMusicHandler_SongObject {
         bool found_album_track_number;
         bool found_total_album_tracks;
 };
+std::deque<OSSP_localMusicHandler_SongObject> OSSP_localMusicHandler_songObject;
+
+class OSSP_localMusicHandler_ArtistObject {
+    public:
+        std::string artist_uid;
+        std::string artist_name;
+};
+std::vector<OSSP_localMusicHandler_ArtistObject> OSSP_localMusicHandler_artistObject;
+
+class OSSP_localMusicHandler_AlbumObject {
+    public:
+        std::string artist_uid;
+        std::string artist_name;
+        std::string album_uid;
+        std::string album_name;
+};
+std::vector<OSSP_localMusicHandler_AlbumObject> OSSP_localMusicHandler_albumObject;
 
 extern OSSP_config_t* configObj;
 static sqlite3* sqlite_db = NULL;
 static char* sqlite_errorMsg = NULL;
 std::vector<std::string> OSSP_localMusicHandler_files;
-std::deque<OSSP_localMusicHandler_SongObject> OSSP_localMusicHandler_songObject;
+
 
 
 /*
@@ -171,6 +202,8 @@ void OSSP_localMusicHandler_scanMusic() {
 
     printf("[OSSP_LocalMusicHandler] Initiating scan.\n");
 
+    // TODO clear all variables here
+
     // Scan the music directory recursively to find all files
     printf("[OSSP_LocalMusicHandler] Scanning directory %s for files.\n", configObj->local_music_rootdir);
     OSSP_localMusicHandler_scanDirectory(configObj->local_music_rootdir);
@@ -182,11 +215,23 @@ void OSSP_localMusicHandler_scanMusic() {
 
     // Scan each file ----
     for (int i = 0; i < OSSP_localMusicHandler_files.size(); i++) {
+        // This function scans the file, pulls all the relevent metadata, and appends it to the song vector
         OSSP_localMusicHandler_scanFile((char*)OSSP_localMusicHandler_files[i].c_str()); // TODO Const issue
     }
 
-    // Write to database
+    OSSP_localMusicHandler_scanForUniqueAlbums();
+
+    // Scan all scanned songs and find all unique artists
+    // This fills the uniqueArtists (type OSSP_localMusicHandler_ArtistObject) object
+    OSSP_localMusicHandler_scanForUniqueArtists();
+
+    // Write all data to database
     OSSP_localMusicHandler_writeToDb();
+
+
+    // TESTING
+    OSSP_localMusicHandler_fetchAllAlbumsByArtistUid("local_156bf8162314ed8ddcc97a46f6dd515d");
+    OSSP_localMusicHandler_fetchAllArtists();
 }
 
 void OSSP_localMusicHandler_scanDirectory(char* directory) {
@@ -398,6 +443,7 @@ void OSSP_localMusicHandler_scanFile(char* file) {
     }
 
     // Generate UIDs
+    // TODO Deal with potential duplicates
     rc = asprintf(&album_uid_raw, "%s%s",
         songObject.artist_name.c_str(), songObject.album_name.c_str());
     if (rc == -1) {
@@ -481,21 +527,55 @@ void OSSP_localMusicHandler_writeToDb() {
         //goto cleanup;
     }
     
-    const char* dropTableSQLQ = "DROP TABLE IF EXISTS local_songs;";
-    rc = sqlite3_exec(sqlite_db, dropTableSQLQ, 0, 0, &sqlite_errorMsg);
+    const char* dropSongTableSQLQ = "DROP TABLE IF EXISTS local_songs;";
+    rc = sqlite3_exec(sqlite_db, dropSongTableSQLQ, 0, 0, &sqlite_errorMsg);
     if (rc != SQLITE_OK) {
         //
     }
 
-    const char* createTableSQLQ = "CREATE TABLE local_songs(song_uid TEXT, album_uid TEXT, artist_uid TEXT, song_name TEXT, album_name TEXT, artist_name TEXT, has_inbuilt_lyrics INT, duration INT, filesize INT, album_track_number INT, total_album_tracks INT, filepath TEXT)";
-    rc = sqlite3_exec(sqlite_db, createTableSQLQ, 0, 0, &sqlite_errorMsg);
+    const char* dropArtistTableSQLQ = "DROP TABLE IF EXISTS all_artists;";
+    rc = sqlite3_exec(sqlite_db, dropArtistTableSQLQ, 0, 0, &sqlite_errorMsg);
     if (rc != SQLITE_OK) {
         //
     }
 
-    // Add all scanned music to database
+    const char* dropAlbumTableSQLQ = "DROP TABLE IF EXISTS all_albums;";
+    rc = sqlite3_exec(sqlite_db, dropAlbumTableSQLQ, 0, 0, &sqlite_errorMsg);
+    if (rc != SQLITE_OK) {
+        //
+    }
+
+    const char* createSongTableSQLQ = "CREATE TABLE local_songs(song_uid TEXT, album_uid TEXT, artist_uid TEXT, song_name TEXT, album_name TEXT, artist_name TEXT, has_inbuilt_lyrics INT, duration INT, filesize INT, album_track_number INT, total_album_tracks INT, filepath TEXT)";
+    rc = sqlite3_exec(sqlite_db, createSongTableSQLQ, 0, 0, &sqlite_errorMsg);
+    if (rc != SQLITE_OK) {
+        //
+    }
+
+    const char* createArtistTableSQLQ = "CREATE TABLE all_artists(uid TEXT, name TEXT)";
+    rc = sqlite3_exec(sqlite_db, createArtistTableSQLQ, 0, 0, &sqlite_errorMsg);
+    if (rc != SQLITE_OK) {
+        //
+    }
+
+    const char* createAlbumTableSQLQ = "CREATE TABLE all_albums(artist_uid TEXT, artist_name TEXT, album_uid TEXT, album_name TEXT)";
+    rc = sqlite3_exec(sqlite_db, createAlbumTableSQLQ, 0, 0, &sqlite_errorMsg);
+    if (rc != SQLITE_OK) {
+        //
+    }
+
+    // Add all scanned songs to database
     for (int i = 0; i < OSSP_localMusicHandler_songObject.size(); i++) {
         OSSP_localMusicHandler_writeSongToDb(i);
+    }
+
+    // Add all artists to database
+    for (int i = 0; i < OSSP_localMusicHandler_artistObject.size(); i++) {
+        OSSP_localMusicHandler_writeArtistToDb(i);
+    }
+
+    // Add all albums to database
+    for (int i = 0; i < OSSP_localMusicHandler_albumObject.size(); i++) {
+        OSSP_localMusicHandler_writeAlbumToDb(i);
     }
 
 cleanup:
@@ -536,6 +616,48 @@ void OSSP_localMusicHandler_writeSongToDb(int idx) {
     sqlite3_finalize(sqlite_stmt);
 }
 
+void OSSP_localMusicHandler_writeArtistToDb(int idx) {
+    static int rc = 0;
+    const char* addMusicSQLQ = "INSERT INTO all_artists VALUES(?, ?)";
+    sqlite3_stmt* sqlite_stmt;
+
+    rc = sqlite3_prepare_v2(sqlite_db, addMusicSQLQ, -1, &sqlite_stmt, NULL);
+    if (rc != SQLITE_OK) {
+        //
+    }
+
+    sqlite3_bind_text(sqlite_stmt, 1, OSSP_localMusicHandler_artistObject[idx].artist_uid.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(sqlite_stmt, 2, OSSP_localMusicHandler_artistObject[idx].artist_name.c_str(), -1, SQLITE_TRANSIENT);
+
+    if (sqlite3_step(sqlite_stmt) != SQLITE_DONE) {
+        printf("[OSSP_LocalMusicHanlder] OSSP_localMusicHandler_writeArtistToDb() execution error: %s\n", sqlite3_errmsg(sqlite_db));
+    }
+
+    sqlite3_finalize(sqlite_stmt);
+}
+
+void OSSP_localMusicHandler_writeAlbumToDb(int idx) {
+    static int rc = 0;
+    const char* addMusicSQLQ = "INSERT INTO all_albums VALUES(?, ?, ?, ?)";
+    sqlite3_stmt* sqlite_stmt;
+
+    rc = sqlite3_prepare_v2(sqlite_db, addMusicSQLQ, -1, &sqlite_stmt, NULL);
+    if (rc != SQLITE_OK) {
+        //
+    }
+
+    sqlite3_bind_text(sqlite_stmt, 1, OSSP_localMusicHandler_albumObject[idx].artist_uid.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(sqlite_stmt, 2, OSSP_localMusicHandler_albumObject[idx].artist_name.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(sqlite_stmt, 3, OSSP_localMusicHandler_albumObject[idx].album_uid.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(sqlite_stmt, 4, OSSP_localMusicHandler_albumObject[idx].album_name.c_str(), -1, SQLITE_TRANSIENT);
+
+    if (sqlite3_step(sqlite_stmt) != SQLITE_DONE) {
+        printf("[OSSP_LocalMusicHanlder] OSSP_localMusicHandler_writeAlbumToDb() execution error: %s\n", sqlite3_errmsg(sqlite_db));
+    }
+
+    sqlite3_finalize(sqlite_stmt);
+}
+
 /*
  * Database to App Interface
  */
@@ -553,6 +675,84 @@ int OSSP_localMusicHandler_checkMemoryDb() {
     return OSSP_localMusicHandler_songObject.size();
 }
 
+
+
+void OSSP_localMusicHandler_songReq_Deconstructor(OSSP_localMusicHandler_songReq_t* obj) {
+    //
+}
+
+
+
+void OSSP_localMusicHandler_scanForUniqueArtists() {
+    // Scan the --- and make a list of all the unique artists, paired with the artist UIDs (of course)
+
+    // Copy all the artists into a new std::vector
+    for (int i = 0; i < OSSP_localMusicHandler_songObject.size(); i++) {
+        OSSP_localMusicHandler_ArtistObject artistObj;
+        artistObj.artist_uid = OSSP_localMusicHandler_songObject[i].artist_uid;
+        artistObj.artist_name = OSSP_localMusicHandler_songObject[i].artist_name;
+        OSSP_localMusicHandler_artistObject.push_back(artistObj);
+    }
+
+    // Sort and remove all non-unique artists (Not sure about this code tbh, having trust in stackoverflow >_<)
+    std::sort(OSSP_localMusicHandler_artistObject.begin(), OSSP_localMusicHandler_artistObject.end(),
+        [](const OSSP_localMusicHandler_ArtistObject& a, const OSSP_localMusicHandler_ArtistObject& b) {
+        return a.artist_uid < b.artist_uid;
+    });
+
+    OSSP_localMusicHandler_artistObject.erase(std::unique(OSSP_localMusicHandler_artistObject.begin(), OSSP_localMusicHandler_artistObject.end(),
+        [](const OSSP_localMusicHandler_ArtistObject& a, const OSSP_localMusicHandler_ArtistObject& b) {
+        return a.artist_uid == b.artist_uid;
+    }), OSSP_localMusicHandler_artistObject.end());
+}
+
+
+
+
+
+
+
+void OSSP_localMusicHandler_scanForUniqueAlbums() {
+    // ---
+
+    // Copy all the albums (and required related info) into a new std::vector
+    for (int i = 0; i < OSSP_localMusicHandler_songObject.size(); i++) {
+        OSSP_localMusicHandler_AlbumObject albumObj;
+        albumObj.artist_uid = OSSP_localMusicHandler_songObject[i].artist_uid;
+        albumObj.artist_name = OSSP_localMusicHandler_songObject[i].artist_name;
+        albumObj.album_uid = OSSP_localMusicHandler_songObject[i].album_uid;
+        albumObj.album_name = OSSP_localMusicHandler_songObject[i].album_name;
+        OSSP_localMusicHandler_albumObject.push_back(albumObj);
+    }
+
+    // Same as the artist scanner.
+    // Compare the album UID, as it is generated with both the artist and album name into a single field, very easy
+    // This way, 2 artists can have the same album name, and it won't get wrongly filtered
+    std::sort(OSSP_localMusicHandler_albumObject.begin(), OSSP_localMusicHandler_albumObject.end(),
+        [](const OSSP_localMusicHandler_AlbumObject& a, const OSSP_localMusicHandler_AlbumObject& b) {
+        return a.album_uid < b.album_uid;
+    });
+
+    OSSP_localMusicHandler_albumObject.erase(std::unique(OSSP_localMusicHandler_albumObject.begin(), OSSP_localMusicHandler_albumObject.end(),
+        [](const OSSP_localMusicHandler_AlbumObject& a, const OSSP_localMusicHandler_AlbumObject& b) {
+        return a.album_uid == b.album_uid;
+    }), OSSP_localMusicHandler_albumObject.end());
+
+    // Now sort the vector by artist_uid. This doesn't change anything programatically (that I am aware of, anyway),
+    // it just makes the sqlite table a lot easier to read in a viewer
+    // The amount of time this sort takes compared to everything else to do with the local music handling
+    // is so extremely small, that I am just not worried about it
+    std::sort(OSSP_localMusicHandler_albumObject.begin(), OSSP_localMusicHandler_albumObject.end(),
+        [](const OSSP_localMusicHandler_AlbumObject& a, const OSSP_localMusicHandler_AlbumObject& b) {
+        return a.artist_uid < b.artist_uid;
+    });
+
+    printf("[OSSP_LocalMusicHandler] Successfully scanned for albums. Found %d albums.\n", OSSP_localMusicHandler_albumObject.size());
+}
+
+/*
+ * ----
+ */
 OSSP_localMusicHandler_songReq_t* OSSP_localMusicHandler_fetchAllDb() {
     OSSP_localMusicHandler_songReq_t* songReq = (OSSP_localMusicHandler_songReq_t*)malloc(sizeof(OSSP_localMusicHandler_songReq_t));
     songReq->songCount = OSSP_localMusicHandler_songObject.size();
@@ -579,9 +779,130 @@ OSSP_localMusicHandler_songReq_t* OSSP_localMusicHandler_fetchAllDb() {
     return songReq;
 }
 
-void OSSP_localMusicHandler_songReq_Deconstructor(OSSP_localMusicHandler_songReq_t* obj) {
+OSSP_localMusicHandler_artistReq_t* OSSP_localMusicHandler_fetchAllArtistsFromDb() {
+    OSSP_localMusicHandler_artistReq_t* artistReq = (OSSP_localMusicHandler_artistReq_t*)malloc(sizeof(OSSP_localMusicHandler_artistReq_t));
+    artistReq->artist_count = OSSP_localMusicHandler_artistObject.size();
+    artistReq->artists = (OSSP_localMusicHandler_artistReq_artist_t*)malloc(artistReq->artist_count * sizeof(OSSP_localMusicHandler_artistReq_artist_t));
+
+    for (int i = 0; i < artistReq->artist_count; i++) {
+        artistReq->artists[i].artist_uid = strdup(OSSP_localMusicHandler_artistObject[i].artist_uid.c_str());
+        artistReq->artists[i].artist_name = strdup(OSSP_localMusicHandler_artistObject[i].artist_name.c_str());
+    }
+
+    return artistReq;
+}
+
+char* OSSP_localMusicHandler_fetchArtistNameByUid(char* artist_uid) {
     //
 }
+
+
+
+
+
+OSSP_localMusicHandler_albumReq_t* OSSP_localMusicHandler_fetchAllAlbumsFromDb() {
+    //
+}
+
+
+
+
+
+
+
+
+
+
+
+OSSP_localMusicHandler_artistReq_t* OSSP_localMusicHandler_fetchAllArtists(void) {
+    printf("[OSSP_LocalMusicHandler] Fetching all artists\n");
+
+    static int rc = 0;
+    sqlite3_stmt* sqlite_stmt;
+    std::vector<OSSP_localMusicHandler_ArtistObject> temp_artistObj;
+    OSSP_localMusicHandler_artistReq_t* artistObj = NULL;
+
+    char* sqlite_query = "SELECT * from all_artists";
+    rc = sqlite3_prepare_v2(sqlite_db, sqlite_query, -1, &sqlite_stmt, NULL);
+    if (rc != SQLITE_OK) {
+        // TODO
+        return NULL;
+    }
+
+    while(sqlite3_step(sqlite_stmt) == SQLITE_ROW) {
+        OSSP_localMusicHandler_ArtistObject obj;
+        obj.artist_uid = std::string(reinterpret_cast<const char*>(sqlite3_column_text(sqlite_stmt, 0)));
+        obj.artist_name = std::string(reinterpret_cast<const char*>(sqlite3_column_text(sqlite_stmt, 1)));
+        temp_artistObj.push_back(obj);
+    }
+    sqlite3_finalize(sqlite_stmt);
+
+    if (temp_artistObj.size() == 0) {
+        printf("[OSP_LocalMusicHandler] No artists found in database.\n");
+        return NULL;
+    }
+
+    artistObj = (OSSP_localMusicHandler_artistReq_t*)malloc(sizeof(OSSP_localMusicHandler_artistReq_t));
+    artistObj->artist_count = temp_artistObj.size();
+    artistObj->artists = (OSSP_localMusicHandler_artistReq_artist_t*)malloc(artistObj->artist_count * sizeof(OSSP_localMusicHandler_artistReq_artist_t));
+    for (int i = 0; i < artistObj->artist_count; i++) {
+        artistObj->artists[i].artist_uid = strdup(temp_artistObj[i].artist_uid.c_str());
+        artistObj->artists[i].artist_name = strdup(temp_artistObj[i].artist_name.c_str());
+    }
+
+    printf("[OSSP_LocalMusicHandler] Found %d artists\n", artistObj->artist_count);
+    return artistObj;
+}
+
+OSSP_localMusicHandler_albumReq_t* OSSP_localMusicHandler_fetchAllAlbumsByArtistUid(char* artist_uid) {
+    printf("[OSSP_LocalMusicHandler] Fetching all albums from database by artist %s\n", artist_uid);
+    
+    static int rc = 0;
+    sqlite3_stmt* sqlite_stmt;
+    std::vector<OSSP_localMusicHandler_AlbumObject> temp_albumObj; // Temporary place to easily store dynamically sized amounts of heap-allocated information
+    OSSP_localMusicHandler_albumReq_t* albumObj = NULL;
+    
+    char* sqlite_query = "SELECT * FROM all_albums WHERE artist_uid = ?";
+    rc = sqlite3_prepare_v2(sqlite_db, sqlite_query, -1, &sqlite_stmt, NULL);
+    if (rc != SQLITE_OK) {
+        // TODO fix
+        printf("[OSSP_LocalMusicHandler] error\n");
+        return NULL;
+    }
+
+    sqlite3_bind_text(sqlite_stmt, 1, artist_uid, -1, SQLITE_TRANSIENT); // Search by artist_uid (passed via arguments)
+    while (sqlite3_step(sqlite_stmt) == SQLITE_ROW) {
+        OSSP_localMusicHandler_AlbumObject obj;
+        // TODO Why are the stmt indices 0-index'd instead of 1-index'd here? (Already tested 1-index'd, doesn't work)
+        // As for this datatype conversion, information from https://stackoverflow.com/a/804131
+        // Also, sqlite3_column_text is not heap allocated, gets destroyed with either sqlite3_step() or sqlite3_finalize()
+        obj.artist_uid = std::string(reinterpret_cast<const char*>(sqlite3_column_text(sqlite_stmt, 0)));
+        obj.artist_name = std::string(reinterpret_cast<const char*>(sqlite3_column_text(sqlite_stmt, 1)));
+        obj.album_uid = std::string(reinterpret_cast<const char*>(sqlite3_column_text(sqlite_stmt, 2)));
+        obj.album_name = std::string(reinterpret_cast<const char*>(sqlite3_column_text(sqlite_stmt, 3)));
+        temp_albumObj.push_back(obj);
+    }
+    sqlite3_finalize(sqlite_stmt);
+
+    if (temp_albumObj.size() == 0) {
+        printf("[OSSP_LocalMusicHandler] No album found in database by artist %s\n", artist_uid);
+        return NULL;
+    }
+
+    // Move data to a C-compatible object
+    albumObj = (OSSP_localMusicHandler_albumReq_t*)malloc(sizeof(OSSP_localMusicHandler_albumReq_t));
+    albumObj->artist_name = strdup(temp_albumObj[0].artist_name.c_str()); // Artist names are same across all indices
+    albumObj->album_count = temp_albumObj.size();
+    albumObj->albums = (OSSP_localMusicHandler_albumReq_albums_t*)malloc(albumObj->album_count * sizeof(OSSP_localMusicHandler_albumReq_albums_t));
+    for (int i = 0; i < albumObj->album_count; i++) {
+        albumObj->albums[i].album_uid = strdup(temp_albumObj[i].album_uid.c_str());
+        albumObj->albums[i].album_name = strdup(temp_albumObj[i].album_name.c_str());
+    }
+    
+    printf("[OSSP_LocalMusicHandler] Found %d albums by artist %s (%s)\n", albumObj->album_count, albumObj->artist_name, artist_uid);
+    return albumObj;
+}
+
 
 
 

@@ -39,10 +39,55 @@ void OSSP_localMusicHandler_scanFile(char* file);
 char* OSSP_localMusicHandler_generateUID(char* text);
 void OSSP_localMusicHandler_writeToDb();
 void OSSP_localMusicHandler_writeSongToDb(int idx);
+void OSSP_localMusicHandler_writeArtistToDb(int idx);
+void OSSP_localMusicHandler_writeAlbumToDb(int idx);
 
 int OSSP_localMusicHandler_checkMemoryDb();
-OSSP_localMusicHandler_songReq_t* OSSP_localMusicHandler_fetchAllDb();
+
 void OSSP_localMusicHandler_songReq_Deconstructor(OSSP_localMusicHandler_songReq_t* obj);
+
+
+void OSSP_localMusicHandler_scanForUniqueArtists();
+
+
+OSSP_localMusicHandler_songReq_t* OSSP_localMusicHandler_fetchAllDb();
+
+
+
+
+
+typedef struct {
+    char* artist_uid;
+    char* artist_name;
+} OSSP_localMusicHandler_artistReq_artist_t;
+typedef struct {
+    int artist_count;
+    OSSP_localMusicHandler_artistReq_artist_t* artists;
+} OSSP_localMusicHandler_artistReq_t;
+OSSP_localMusicHandler_artistReq_t* OSSP_localMusicHandler_fetchAllArtistsFromDb();
+
+
+
+
+
+
+
+
+typedef struct {
+    char* album_uid;
+    char* album_name;
+} OSSP_localMusicHandler_albumReq_albums_t;
+
+typedef struct {
+    char* artist_name;
+    int album_count;
+    OSSP_localMusicHandler_albumReq_albums_t* albums;
+} OSSP_localMusicHandler_albumReq_t;
+
+void OSSP_localMusicHandler_scanForUniqueAlbums();
+
+OSSP_localMusicHandler_artistReq_t* OSSP_localMusicHandler_fetchAllArtists(void);
+OSSP_localMusicHandler_albumReq_t* OSSP_localMusicHandler_fetchAllAlbumsByArtistUid(char* artist_uid);
 
 #ifdef __cplusplus
 }
