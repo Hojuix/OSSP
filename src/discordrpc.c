@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "external/discord-rpc/include/discord_rpc.h"
+#include "external/libdiscordrpc_ossp/rpc_general.h"
 #include "configHandler.h"
 #include "discordrpc.h"
 
@@ -17,7 +17,7 @@
 #include <sys/sysctl.h>
 #endif // defined(__APPLE__) && defined(__MACH__)
 
-extern configHandler_config_t* configObj;
+extern OSSP_config_t* configObj;
 const char* discordrpc_appid = "1407025303779278980";
 char* discordrpc_osString = NULL;
 static int rc = 0;
@@ -47,9 +47,16 @@ void OSSP_discordrpc_Deconstructor(OSSP_discordrpc_t* obj) {
 
 int OSSP_discordrpc_Init() {
     printf("[DiscordRPC] Initializing.\n");
-    DiscordEventHandlers handlers;
-    memset(&handlers, 0, sizeof(handlers));
-    Discord_Initialize(discordrpc_appid, &handlers, 1, NULL);
+    //DiscordEventHandlers handlers;
+    //memset(&handlers, 0, sizeof(handlers));
+    //Discord_Initialize(discordrpc_appid, &handlers, 1, NULL);
+
+    rc = Rpc_General_Initialize("1407025303779278980");
+    if (rc != 0) {
+        printf("Could not connect to Discord RPC.\n");
+        return 1;
+    }
+    printf("Connected to Discord RPC.\n");
 
     // Fetch OS String for RPC (Heap-allocated)
     discordrpc_osString = OSSP_discordrpc_getOS();
@@ -62,53 +69,71 @@ int OSSP_discordrpc_Init() {
 
 void OSSP_discordrpc_update(OSSP_discordrpc_t* obj) {
     printf("[DiscordRPC] Updating...\n");
-    DiscordRichPresence presence;
+
+    Discord_RPC_SendActivity_t* activity = Rpc_General_SetActivity_Constructor();
+
+    //DiscordRichPresence presence;
     char* detailsString = NULL;
     char* stateString = NULL;
-    memset(&presence, 0, sizeof(presence));
+    //memset(&presence, 0, sizeof(presence));
 
     if (obj->state == DISCORDRPC_STATE_IDLE) {
         printf("[DiscordRPC] Issuing Idle RPC.\n");
         asprintf(&detailsString, "Idle");
-        presence.details = detailsString;
+        //presence.details = detailsString;
+        activity->details = strdup(detailsString);
     } else if (obj->state == DISCORDRPC_STATE_PLAYING_OPENSUBSONIC ||
            (obj->state == DISCORDRPC_STATE_PLAYING_LOCALFILE)) {
         // Playing a song from an OpenSubsonic server
         printf("[DiscordRPC] Issuing OpenSubsonic/Local File Song RPC.\n");
         asprintf(&detailsString, "%s", obj->songTitle);
         asprintf(&stateString, "by %s", obj->songArtist);
-        presence.details = detailsString;
-        presence.state = stateString;
+        //presence.details = detailsString;
+        //presence.state = stateString;
+        activity->details = strdup(detailsString);
+        activity->state = strdup(stateString);
         if (obj->state == DISCORDRPC_STATE_PLAYING_OPENSUBSONIC) {
             // TODO As of now, local file playback does NOT deal with cover art
-            presence.largeImageKey = obj->coverArtUrl;
+            //presence.largeImageKey = obj->coverArtUrl;
+            // TODO find out what largeImageKey references in the API
         }
-        presence.startTimestamp = (long)(obj->startTime);
-        presence.endTimestamp = (long)(obj->startTime) + obj->songLength;
-        if (configObj->discordrpc_showSysDetails) {
-            presence.largeImageText = discordrpc_osString;
+        activity->timestamp_start = (long)(obj->startTime);
+        activity->timestamp_end = (long)(obj->startTime) + obj->songLength;
+        //presence.startTimestamp = (long)(obj->startTime);
+        //presence.endTimestamp = (long)(obj->startTime) + obj->songLength;
+        if (configObj->discordrpc_show_system_details) {
+            //presence.largeImageText = discordrpc_osString;
+            activity->large_text = strdup(discordrpc_osString);
         }
     } else if (obj->state == DISCORDRPC_STATE_PLAYING_INTERNETRADIO) {
         // Playing an internet radio station
         printf("[DiscordRPC] Issuing Internet Radio RPC.\n");
         asprintf(&detailsString, "%s", obj->songTitle);
         asprintf(&stateString, "Internet radio station");
-        presence.details = detailsString;
-        presence.state = stateString;
-        presence.largeImageKey = obj->coverArtUrl;
-        presence.startTimestamp = (long)(obj->startTime);
-        if (configObj->discordrpc_showSysDetails) {
-            presence.largeImageText = discordrpc_osString;
+        //presence.details = detailsString;
+        //presence.state = stateString;
+        //presence.largeImageKey = obj->coverArtUrl; // TODO also this
+        //presence.startTimestamp = (long)(obj->startTime);
+        activity->details = strdup(detailsString);
+        activity->state = strdup(stateString);
+        activity->timestamp_start = (long)(obj->startTime);
+        if (configObj->discordrpc_show_system_details) {
+            //presence.largeImageText = discordrpc_osString;
+            activity->large_text = strdup(discordrpc_osString);
         }
     } else if (obj->state == DISCORDRPC_STATE_PAUSED) {
         // Player is paused
         printf("[DiscordRPC] Issuing Paused RPC.\n");
         asprintf(&detailsString, "Paused");
-        presence.details = detailsString;
+        //presence.details = detailsString;
+        activity->details = strdup(detailsString);
     }
 
-    presence.activity_type = DISCORD_ACTIVITY_TYPE_LISTENING;
-    Discord_UpdatePresence(&presence);
+    activity->activity_type = DISCORDRPC_ACTIVITY_TYPE_PLAYING;
+    Rpc_General_SetActivity(activity);
+    Rpc_General_SetActivity_Deconstructor(&activity);
+    //presence.activity_type = DISCORD_ACTIVITY_TYPE_LISTENING;
+    //Discord_UpdatePresence(&presence);
 
     free(detailsString);
     if (stateString != NULL) { free(stateString); }
