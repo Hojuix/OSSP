@@ -15,6 +15,8 @@ find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 
+add_subdirectory(external/fltk-1.4.5)
+
 add_executable(ossp MACOSX_BUNDLE
     main.c
     configHandler.c
@@ -47,6 +49,8 @@ add_executable(ossp MACOSX_BUNDLE
 
     player/player.c
     player/playQueue.cpp
+
+    ui/ui_entry.cpp
 
     external/cJSON.c
     external/cJSON_Utils.c
@@ -89,4 +93,5 @@ else()
 endif()
 
 message(${GSTREAMER_LIBRARIES})
-target_link_libraries(ossp PRIVATE OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${BZ2_LIBRARIES} ${GSTREAMER_LIBRARIES} ${AVFORMAT_LIBRARIES} ${AVUTIL_LIBRARIES} avformat avutil)
+message(${GSTREAMER_INCLUDE_DIRS})
+target_link_libraries(ossp PRIVATE OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${BZ2_LIBRARIES} ${GSTREAMER_LIBRARIES} ${AVFORMAT_LIBRARIES} ${AVUTIL_LIBRARIES} avformat avutil fltk::fltk)
