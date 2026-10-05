@@ -1,27 +1,26 @@
 {
     "opensubsonic_server": {
         "info": "OpenSubsonic server settings. You will be able to disable this in the future if you only want to use local playback",
-        "protocol": "https",
-        "server": "www.example.com",
-        "username": "user",
+        "enable": false,
+        "server": "https://example.com:8080",
+        "username": "username",
         "password": "password"
     },
     "client": {
         "info": "Path for the client unix socket. Leave this unedited unless you know what you're doing",
         "socketPath": "/tmp/ossp_socket"
     },
-    "local": {
+    "local_music": {
         "info": "Local music playback configuration",
-        "enable": false,
-        "rootDirectory": "/Path/to/local/music/folder"
+        "enable": true,
+        "root_directory": "/home/user/Music"
     },
     "scrobbler": {
-        "info": "LastFM requires some work to get valid tokens beforehand",
         "listenbrainz_enable": false,
         "listenbrainz_token": "",
         "lastfm_enable": false,
-        "lastfm_username": "Your LastFM username",
-        "lastfm_password": "Your LastFM password",
+        "lastfm_username": "",
+        "lastfm_password": "",
         "lastfm_api_key": "",
         "lastfm_api_secret": "",
         "lastfm_session_key": ""
@@ -29,69 +28,99 @@
     "discord_rpc": {
         "info": "Discord RPC Settings. Leave method on '0', method '1' is highly experimental and requires a server",
         "enable": true,
-        "method": 0,
         "showSystemDetails": true,
         "showCoverArt": true
     },
     "audio": {
         "equalizer": {
             "enable": true,
-            "followPitch": false,
-            "graph": [
+            "presets": [
                 {
-                    "bandwidth": 0.5,
-                    "frequency": 22,
-                    "gain": 15.83,
-                    "bypass": false
-                },
-                {
-                    "bandwidth": 0.5,
-                    "frequency": 28,
-                    "gain": 12.65,
-                    "bypass": false
-                },
-                {
-                    "bandwidth": 0.5,
-                    "frequency": 35,
-                    "gain": 10.69,
-                    "bypass": false
-                },
-                {
-                    "bandwidth": 0.5,
-                    "frequency": 43,
-                    "gain": 6.65,
-                    "bypass": false
-                },
-                {
-                    "bandwidth": 0.5,
-                    "frequency": 53,
-                    "gain": 6.16,
-                    "bypass": false
-                },
-                {
-                    "bandwidth": 0.5,
-                    "frequency": 66,
-                    "gain": 0,
-                    "bypass": false
-                },
-                {
-                    "bandwidth": 0.5,
-                    "frequency": 82,
-                    "gain": 0,
-                    "bypass": false
+                    "name": "General",
+                    "follow_pitch": false,
+                    "graph": [
+                        {
+                            "position": 0,
+                            "bandwidth": 0.5,
+                            "frequency": 22,
+                            "gain": 16.98,
+                            "bypass": false
+                        },
+                        {
+                            "position": 1,
+                            "bandwidth": 0.5,
+                            "frequency": 28,
+                            "gain": 14.09,
+                            "bypass": false
+                        },
+                        {
+                            "position": 2,
+                            "bandwidth": 0.5,
+                            "frequency": 35,
+                            "gain": 12.01,
+                            "bypass": false
+                        },
+                        {
+                            "position": 3,
+                            "bandwidth": 0.5,
+                            "frequency": 43,
+                            "gain": 8.00,
+                            "bypass": false
+                        },
+                        {
+                            "position": 4,
+                            "bandwidth": 0.5,
+                            "frequency": 53,
+                            "gain": 8.00,
+                            "bypass": false
+                        },
+                        {
+                            "position": 5,
+                            "bandwidth": 0.5,
+                            "frequency": 66,
+                            "gain": 2.03,
+                            "bypass": false
+                        },
+                        {
+                            "position": 6,
+                            "bandwidth": 0.5,
+                            "frequency": 82,
+                            "gain": 0.00,
+                            "bypass": false
+                        }
+                    ]
                 }
             ]
         },
         "pitch": {
+            "info1": "Adjust pitch in cents. Both positive and negative are accepted.",
             "enable": true,
-            "cents": -270.0,
-            "rate": 1.0
+            "cents": 0.0
         },
         "reverb": {
             "enable": false,
             "wetDryMix": 15.0
         },
+        "output": {
+            "info1": "The backend can either be set to auto, or pulse",
+            "info2": "If the backend is set to pulse, set pulse_device to the pulseaudio sink",
+            "backend": "auto",
+            "pulse_device": ""
+        },
+        "modifiers": {
+            "info1": "The fun stuff. Set defaults for the nightcore and daycore modes.",
+            "nightcoreinator": {
+                "audio_rate": 1.15,
+                "pitch_cents": 300
+            },
+            "daycoreinator": {
+                "audio_rate": 0.85,
+                "pitch_cents": -200
+            }
+        },
         "lv2": {
+            "use_custom_lv2_path": true,
+            "custom_lv2_path": "/opt/ossp/lib/lv2",
             "lsp_para_x32_lr": {
                 "filter_name": "lsp-plug-in-plugins-lv2-para-equalizer-x32-lr",
                 "filter_type_left": "ftl-",

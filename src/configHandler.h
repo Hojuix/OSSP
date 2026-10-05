@@ -1,6 +1,6 @@
 /*
  * OpenSubsonicPlayer (OSSP)
- * Goldenkrew3000 / Hojuix 2026
+ * Goldenkrew3000 / gk3k / Hojuix 2026
  * License: GNU General Public License 3.0
  * Info: Configuration Handler
  */
@@ -57,15 +57,23 @@ typedef struct {
     bool discordrpc_show_system_details;// Show 'on OS ARCH VERSION' in RPC
     bool discordrpc_show_cover_art;     // Show cover art instead of app icon (Leaks OSS credentials to Discord)
 
+    // UI Settings
+    char* ui_language_code;
+
     // Audio Settings
     bool audio_equalizer_enable;
     int audio_equalizer_preset_count;
     OSSP_config_eqPreset_t* audio_equalizer_presets;
     bool audio_pitch_enable;
     double audio_pitch_cents;
-    double audio_pitch_rate;
     bool audio_reverb_enable;
     double audio_reverb_wetDryMix;      // Reverb Wet/Dry Mix Percent
+    char* audio_output_backend;
+    char* audio_output_pulse_device;
+    double audio_nightcoreinator_audio_rate;
+    double audio_nightcoreinator_pitch_cents;
+    double audio_daycoreinator_audio_rate;
+    double audio_daycoreinator_pitch_cents;
 
     // LV2 Audio Settings
     bool lv2_use_custom_path;

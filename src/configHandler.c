@@ -1,6 +1,6 @@
 /*
  * OpenSubsonicPlayer (OSSP)
- * Goldenkrew3000 / Hojuix 2026
+ * Goldenkrew3000 / gk3k / Hojuix 2026
  * License: GNU General Public License 3.0
  * Info: Configuration Handler
  */
@@ -59,9 +59,14 @@ OSSP_config_t* OSSP_configHandler_Constructor() {
 
     obj->audio_pitch_enable = false;
     obj->audio_pitch_cents = 0.00;
-    obj->audio_pitch_rate = 0.00;
     obj->audio_reverb_enable = false;
     obj->audio_reverb_wetDryMix = 0.00;
+    obj->audio_output_backend = NULL;
+    obj->audio_output_pulse_device = NULL;
+    obj->audio_nightcoreinator_audio_rate = 0.00;
+    obj->audio_nightcoreinator_pitch_cents = 0.00;
+    obj->audio_daycoreinator_audio_rate = 0.00;
+    obj->audio_daycoreinator_pitch_cents = 0.00;
 
     obj->lv2_use_custom_path = false;
     obj->lv2_custom_path = NULL;
@@ -104,6 +109,8 @@ void OSSP_configHandler_Deconstructor(OSSP_config_t* obj) {
         OSS_SafeFree(obj->audio_equalizer_presets[i].audio_equalizer_graph);
     }
     OSS_SafeFree(obj->audio_equalizer_presets);
+    OSS_SafeFree(obj->audio_output_backend);
+    OSS_SafeFree(obj->audio_output_pulse_device);
     
     OSS_SafeFree(obj->lv2_custom_path);
     OSS_SafeFree(obj->lv2_parax32_filter_name);
@@ -238,6 +245,11 @@ int OSSP_configHandler_readConfig(OSSP_config_t* obj) {
         printf("[ConfigHandler] 'discord_rpc' section missing from configuraton file.\n");
     }
 
+    cJSON* ui_root = cJSON_GetObjectItemCaseSensitive(root, "ui");
+    if (ui_root != NULL) {
+        // TODO
+    }
+
     // I am genuinely incredibly sorry for what you are about to read...
     cJSON* audio_root = cJSON_GetObjectItemCaseSensitive(root, "audio");
     if (audio_root != NULL) {
@@ -289,7 +301,6 @@ int OSSP_configHandler_readConfig(OSSP_config_t* obj) {
         if (pitch_root != NULL) {
             OSS_Pboj(&obj->audio_pitch_enable, pitch_root, "enable");
             OSS_Pdoj(&obj->audio_pitch_cents, pitch_root, "cents");
-            OSS_Pdoj(&obj->audio_pitch_rate, pitch_root, "rate");
         } else {
             printf("[ConfigHandler] 'pitch' section missing from configuration file.\n");
         }
@@ -300,6 +311,35 @@ int OSSP_configHandler_readConfig(OSSP_config_t* obj) {
             OSS_Pdoj(&obj->audio_reverb_wetDryMix, reverb_root, "wet_dry_mix");
         } else {
             printf("[ConfigHandler] 'reverb' section missing from configuration file.\n");
+        }
+
+        cJSON* output_root = cJSON_GetObjectItemCaseSensitive(audio_root, "output");
+        if (output_root != NULL) {
+            OSS_Psoj(&obj->audio_output_backend, output_root, "backend");
+            OSS_Psoj(&obj->audio_output_pulse_device, output_root, "pulse_device");
+        } else {
+            printf("[ConfigHandler] 'output' section missing from configuration file.\n");
+        }
+
+        cJSON* modifiers_root = cJSON_GetObjectItemCaseSensitive(audio_root, "modifiers");
+        if (modifiers_root != NULL) {
+            cJSON* nightcoreinator_root = cJSON_GetObjectItemCaseSensitive(modifiers_root, "nightcoreinator");
+            if (nightcoreinator_root != NULL) {
+                OSS_Pdoj(&obj->audio_nightcoreinator_audio_rate, nightcoreinator_root, "audio_rate");
+                OSS_Pdoj(&obj->audio_nightcoreinator_pitch_cents, nightcoreinator_root, "pitch_cents");
+            } else {
+                printf("[ConfigHandler] 'nightcoreinator' section missing from configuration file.\n");
+            }
+
+            cJSON* daycoreinator_root = cJSON_GetObjectItemCaseSensitive(modifiers_root, "daycoreinator");
+            if (daycoreinator_root != NULL) {
+                OSS_Pdoj(&obj->audio_daycoreinator_audio_rate, daycoreinator_root, "audio_rate");
+                OSS_Pdoj(&obj->audio_daycoreinator_pitch_cents, daycoreinator_root, "pitch_cents");
+            } else {
+                printf("[ConfigHandler] 'daycoreinator' section missing from configuration file.\n");
+            }
+        } else {
+            printf("[ConfigHandler] 'modifiers' section missing from configuration file.\n");
         }
 
         cJSON* lv2_root = cJSON_GetObjectItemCaseSensitive(audio_root, "lv2");
