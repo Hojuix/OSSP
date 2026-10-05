@@ -1,6 +1,6 @@
 /*
  * Discord RPC Library
- * Goldenkrew3000 / Hojuix 2026
+ * Goldenkrew3000 / gk3k / Hojuix 2026
  * License: GNU General Public License 3.0
  */
 
@@ -20,6 +20,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
+
 int server_fd = -1;
 
 /*
@@ -36,15 +38,17 @@ int Rpc_Unix_Initialize(char* client_id) {
      * Vesktop's Flatpak puts it at $XDG_RUNTIME_DIR/.flatpak/dev.vencord.Vesktop/xdg-run/discord-ipc-0
      * Discord and Vesktop (native) put it at $XDG_RUNTIME_DIR/discord-ipc-0
      * Though I have also seen it at /tmp/discord-ipc-0
+     *
+     * Okay so:
+     * Check in the tmpdirs first
+     * Check for flatpaks (vesktop and discord official)
      */
-    const char* tmp_path = Rpc_Unix_GetTempPath();
-    printf("Temp path: %s\n", tmp_path);
 
-    // scanning blah blah
-    char* discord_ipc_path = NULL;
-    asprintf(&discord_ipc_path, "/run/user/1000/.flatpak/com.discordapp.Discord/xdg-run/discord-ipc-0"); // TODO
-
-
+    char* socket_path = Rpc_Unix_FindSocket();
+    if (socket_path == NULL) {
+        printf("[libdiscordrpc_ossp] Could not find Discord RPC socket.\n");
+        return -1;
+    }
 
 
 
@@ -57,8 +61,8 @@ int Rpc_Unix_Initialize(char* client_id) {
 
     memset(&server_addr, 0, sizeof(struct sockaddr_un));
     server_addr.sun_family = AF_UNIX;
-    strncpy(server_addr.sun_path, discord_ipc_path, sizeof(server_addr.sun_path) - 1);
-    free(discord_ipc_path); discord_ipc_path = NULL; // TODO
+    strncpy(server_addr.sun_path, socket_path, sizeof(server_addr.sun_path) - 1);
+    free(socket_path); socket_path = NULL; // TODO
 
     if (connect(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         printf("Could not connect to socket: %s\n", strerror(errno));
@@ -187,16 +191,6 @@ int Rpc_Unix_SendFrame(char* payload) {
     return 0;
 }
 
-const char* Rpc_Unix_GetTempPath() {
-    // copied blah blah
-    const char* temp = getenv("XDG_RUNTIME_DIR");
-    temp = temp ? temp : getenv("TMPDIR");
-    temp = temp ? temp : getenv("TMP");
-    temp = temp ? temp : getenv("TEMP");
-    temp = temp ? temp : "/tmp";
-    return temp;
-}
-
 /*
  * Open the Discord IPC UNIX Socket
  * Returns ---
@@ -205,5 +199,61 @@ int Rpc_Unix_Open() {
 
 }
 
+
+// Finds the Discord RPC socket
+char* Rpc_Unix_FindSocket() {
+    /*
+     * Methodology (In order)
+     * Check if XDG_RUNTIME_DIR exists (Running on Linux or a standard UNIX userland)
+     *   Check for $XDG_RUNTIME_DIR/discord-ipc-0
+     *   Check for $XDG_RUNTIME_DIR/.flatpak/com.discordapp.Discord/xdg-run/discord-ipc-0
+     *   Check for $XDG_RUNTIME_DIR/.flatpak/dev.vencord.Vesktop/xdg-run/discord-ipc-0
+     * Check if TMPDIR exists
+     *   Check if $TMPDIR starts with /var/ (Running on macOS)
+     * The old library checked TMP and TEMP, but these are (usually) Win32 specific, and just no.
+     */
+
+    static int rc = 0;
+    char* ipc_path = NULL;
+
+    const char* env_XDG_RUNTIME_DIR = getenv("XDG_RUNTIME_DIR");
+    if (env_XDG_RUNTIME_DIR != NULL) {
+        printf("[libdiscordrpc_ossp] Detected Linux / Standard UNIX userland.\n");
+
+        //
+    }
+
+    const char* env_TMPDIR = getenv("TMPDIR");
+    if (env_TMPDIR != NULL) {
+        printf("[libdiscordrpc_ossp] Detected Darwin XNU (macOS) userland.\n");
+
+        asprintf(&ipc_path, "%sdiscord-ipc-0", env_TMPDIR);
+        if (ipc_path == NULL) {
+            printf("[libdiscordrpc_ossp] failed allocation.\n");
+            return NULL;
+        }
+        rc = Rpc_Unix_CheckSocket(ipc_path);
+        if (rc == 0) {
+            return ipc_path;
+        }
+        return NULL;
+    }
+
+    // Could not find Discord IPC
+    printf("[libdiscordrpc_ossp] Could not find environment variable for pointing to Discord IPC socket.\n");
+    return NULL;
+}
+
+// Check whether socket_path is a socket. Returns 0 if it is, else -1
+int Rpc_Unix_CheckSocket(char* socket_path) {
+    struct stat st;
+    if (stat(socket_path, &st) == 0) {
+        if (S_ISSOCK(st.st_mode)) {
+            printf("[libdiscordrpc_ossp] Found Discord IPC socket at %s\n", socket_path);
+            return 0;
+        }
+    }
+    return -1;
+}
 
 

@@ -1,6 +1,6 @@
 /*
  * Discord RPC Library
- * Goldenkrew3000 / Hojuix 2026
+ * Goldenkrew3000 / gk3k / Hojuix 2026
  * License: GNU General Public License 3.0
  */
 

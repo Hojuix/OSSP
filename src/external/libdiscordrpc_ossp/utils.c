@@ -1,6 +1,6 @@
 /*
  * Discord RPC Library
- * Goldenkrew3000 / Hojuix 2026
+ * Goldenkrew3000 / gk3k / Hojuix 2026
  * License: GNU General Public License 3.0
  */
 
@@ -16,11 +16,9 @@
 char* Rpc_Util_GenerateUUID() {
     static int rc = 0;
     uint8_t random_bytes[16] = { 0x00 };
-    if (getrandom(random_bytes, sizeof(random_bytes), 0) != sizeof(random_bytes)) {
-        // TODO
-        for (int i = 0; i < sizeof(random_bytes); i++) {
-            random_bytes[i] = 0x00;
-        }
+
+    for (size_t i = 0; i < sizeof(random_bytes); i++) {
+        random_bytes[i] = arc4random() & 0xFF;
     }
 
     char* uuid_string = NULL;
@@ -39,13 +37,10 @@ char* Rpc_Util_GenerateUUID() {
  * Generate a random PID (Required field for SET_ACTIVITY).
  * Respectfully, fuck off Discord. You don't need to know the PID.
  * Yes, I am generating a massive number on purpose to reduce possible collision with a real PID.
+ * TODO fix comment after changing to arc4random() for *BSD support
  */
 unsigned int Rpc_Util_GenerateRandomPID() {
-    unsigned int rand_number = 0x0;
-    if (getrandom(&rand_number, sizeof(unsigned int), 0) != sizeof(unsigned int)) {
-        // TODO
-        rand_number = 0x0;
-    }
+    unsigned int rand_number = arc4random() & 0xFF;
     return rand_number;
 }
 
