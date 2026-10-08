@@ -1,6 +1,6 @@
 /*
  * OpenSubsonicPlayer
- * Goldenkrew3000 / Hojuix 2026
+ * Goldenkrew3000 / gk3k / Hojuix 2026
  * License: GNU General Public License 3.0
  * Info: Discord RPC Handler
  */
@@ -33,6 +33,7 @@ void OSSP_discordrpc_Deconstructor(OSSP_discordrpc_t* obj);
 int OSSP_discordrpc_Init();
 void OSSP_discordrpc_update(OSSP_discordrpc_t* obj);
 char* OSSP_discordrpc_getOS();
+char* OSSP_discordrpc_extractDataFromKeyLine(char* line);
 
 #ifdef __cplusplus
 }
