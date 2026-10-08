@@ -232,7 +232,7 @@ char* OSSP_discordrpc_getOS() {
 
     // Afaik Discord has a 128 byte limit on any entry (which the OS string is one), so prevent going over that.
     if (strlen(osString) >= 128) {
-        printf("[DsicrdRPC] OS String is too long, setting to 'on Unknown Linux'.\n");
+        printf("[DiscordRPC] OS String is too long, setting to 'on Unknown Linux'.\n");
         OSSP_SafeFree((void**)&osString);
         rc = asprintf(&osString, "on Unknown Linux");
         if (rc == -1) {
