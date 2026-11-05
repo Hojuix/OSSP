@@ -1,5 +1,13 @@
 # OSSP (OpenSubsonicPlayer)
 
+# FUCK OFF
+Fuck you all, and fuck off. I don't like tech anymore. This is my own personal music app, and will probably be the
+last full project I work on. Fuck you, fuck your projects, fuck your PRs, fuck your issues, fuck your AI, and finally - go
+fuck yourself. I don't want to hear from any of you, or your fucking tinskin clanker. I absolutely hate writing code, or
+to be honest, even using a computer - BUT NO ONE WRITES A GOOD FUCKING MUSIC APP. Y'ALL HAVE HAD 40 FUCKING YEARS TO FIGURE
+THIS SHIT OUT, AND THEY ALL FUCKING SUCKKKKK. Oh and if you want to use this code, its GPLv3, so again I say - GO FUCK
+YOURSELF. THIS IS LICENSED THIS WAY TO BE A PAIN IN THE ASS FOR YOU HAHAHAHA FUCK YOU!!!
+
 ## Notices
 ### Why move from GitHub?
 OSSP has moved here (a self hosted Gitea instance) due to me maybe kind of losing access to my GitHub account >_<<br>
@@ -7,7 +15,12 @@ I have lost all access, so that account (github.com/goldenkrew3000) is now a tim
 Not that I care though, no one uses this, and I would rather not use Microsoft slop.
 
 ### No AI Notice
-This project does not contain ANY AI code.<br>
+This project is anti Vibe Coding.
+
+There is one commit that has AI slop, where I tried to figure out something ridiculous in a GStreamer pipeline.
+The code has been committed (commit 87f3c55) for archival purposes, and is not in the codebase except for that
+single commit.
+
 Yes I comment a LOT, and unfortunately this has become a red flag for excessive AI use.<br>
 I am a forgetful person, and have a habit of dropping projects for months at a time, so having
 many comments allows me to come back and instantly understand what I was doing.<br>
